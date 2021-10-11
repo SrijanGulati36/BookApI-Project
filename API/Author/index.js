@@ -6,87 +6,147 @@ const AuthorModel=require("../../database/author");
 Route           /author
 Description     get all authors
 Access          PUBLIC
-Parameter       NONE
-Methods         GET
+Parameters      NONE
+Method          GET
 */
-Router.get("/author", async(req, res) => {
-    const getAllAuthors = await AuthorModel.find();
-    return res.json({ authors: getAllAuthors });
-  });
-  
-  /*
-  Route           /a
-  Description     get all authors 
+Router.get("/", async (req, res) => {
+  try{
+  const getAllAuthors = await AuthorModel.find();
+  return res.json({ authors: getAllAuthors });
+
+  }catch(error){
+    res.json({error : error})
+  }
+});
+/*
+  Route           /author/id
+  Description     get specific author based on a id
   Access          PUBLIC
-  Parameter       name
-  Methods         GET
+  Parameters      id
+  Method          GET
   */
-  
-  Router.get("/author/:name", (req, res) => {
-    const getSpecificAuthor = database.author.filter(
-      (autname) => autname.name === req.params.name
-    );
-  
-    if (getSpecificAuthor.length === 0) {
-      return res.json({
-        error: `No book found for the author ${req.params.name}`
-      });
-    }
-  
-    return res.json({ author: getSpecificAuthor });
+Router.get("/id/:id", async (req, res) => {
+  try{
+  const getSpecificAuthor = AuhtorModel.findOne({
+    id: parseInt(req.params.id),
   });
-  
-  /*
-  Route           /author/book
-  Description     get all authors based on books
+  if (!getSpecificAuthor) {
+    return res.json({
+      error: `No author found for the id : ${req.params.id}`,
+    });
+  }
+  return res.json({ author: getSpecificAuthor });
+
+  }catch(error){
+    res.json({error : error})
+  }
+});
+/*
+  Route           /author
+  Description     get lsit authors based on a book isbn
   Access          PUBLIC
-  Parameter       isbn
-  Methods         GET
+  Parameters      isbn
+  Method          GET
   */
-  Router.get("/author/book/:isbn", (req, res) => {
-    const getSpecificAuthor = database.author.filter((author) =>
-      author.books.includes(req.params.isbn)
-    );
-  
-    if (getSpecificAuthor.length === 0) {
-      return res.json({
-        error: `No Author found for the book of ${req.params.isbn}`,
-      });
-    }
-  
-    return res.json({ authors: getSpecificAuthor });
+Router.get("/:isbn", async (req, res) => {
+  try{
+  const getSpecificAuthors = await AuthorModel.find({
+    books: { $all: [req.params.isbn] },
   });
 
-  /*
-Route           /author/new
+  if (!getSpecificAuthors) {
+    return res.json({
+      error: `No author found for the book ${req.params.isbn}`,
+    });
+  }
+  return res.json({ author: getSpecificAuthors });
+
+  }catch(error){
+    res.json({error : error})
+  }
+});
+
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+/*
+Route           /author/add
 Description     add new author
 Access          PUBLIC
 Parameter       NONE
 Methods         POST
 */
+Router.post("/add", async (req, res) => {
+  try{
+  const { newAuthor } = req.body;
+  await AuthorModel.create(newAuthor);
 
-Router.post("/author/new", (req, res) => {
- 
-    const { newAuthor } = req.body;
-
-    AuthorModel.create(newAuthor);
-    return res.json({ message: "Author added to the database" });
-
-
+  
+  
+  return res.json({ author: newAuthor });
+  }catch(error){
+    res.json({error : error})
+  }
 });
-
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+// _____________________________________________________________________________
 /*
-Route           /author/delete
-Description     delete a author
+Route           /author/update/name
+Description     update book author
 Access          PUBLIC
-Parameter       authorid
-Methods         DELETE
+Parameter       name,id
+Methods         PUT
 */
-Router.delete("/author/delete/:authorId", (req,res)=>{
-    const updatedAuthorDatabase = database.author.filter((author)=>author.id!==parseInt(req.params.authorId));
-    database.author=updatedAuthorDatabase;   
-   
-   return res.json({author:database.author});
-});
+Router.put("/update/name/:id/:name", async(req, res) => {
+  try{
+    const updatedAuthor = await AuthorModel.findOneAndUpdate(
+        {
+            id : req.params.id,
+        },
+        {
+            name : req.params.name,
+        },
+        {
+            new : true
+        }
+    )
+    res.json({ author: updatedAuthor });
+
+    }catch(error){
+      res.json({error : error})
+    }
+  });
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+// _____________________________________________________________________________
+/*
+Route           /author/delete/
+Description     delete a author from a book
+Access          PUBLIC
+Parameters       author id
+Method          DELETE
+*/
+Router.delete("/delete/:id", async (req, res) => {
+  try{
+    const updatedAuthorDatabase = await AuthorModel.findOneAndDelete(
+        {
+          id : req.params.id,
+        }
+    )
+    await BookModel.findOneAndDelete(
+      {
+        author : req.params.id,
+      }
+    )
+    return res.json({ author: updatedAuthorDatabase });
+  }
+  catch(error){
+    res.json({error : error})
+  }
+})
 
 module.exports = Router;
